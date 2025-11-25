@@ -58,8 +58,9 @@ def collate_fn(batch):
         tgts.append([en_vocab["<bos>"]]+[en_vocab[token] for token in en_tokenizer(tgt)]+[en_vocab["<eos>"]])
     max_length_question = max(len(text) for text in srcs)
     max_length_answer = max(len(text) for text in tgts)
-    padded_questions = [text + [ko_vocab["<pad>"]] * (max_length_question - len(text)) for text in srcs]
-    padded_answers = [text + [en_vocab["<pad>"]] * (max_length_answer - len(text)) for text in tgts]
-    return torch.tensor(padded_questions), torch.tensor(padded_answers)
+    padded_srcs = [text + [ko_vocab["<pad>"]] * (max_length_question - len(text)) for text in srcs]
+    padded_tgts = [text + [en_vocab["<pad>"]] * (max_length_answer - len(text)) for text in tgts]
+    return {"src":torch.tensor(padded_srcs),
+            "tgt":torch.tensor(padded_tgts)}
     
 dl = DataLoader(data, batch_size=16, shuffle=True, collate_fn=collate_fn)
