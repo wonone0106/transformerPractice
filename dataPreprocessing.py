@@ -14,8 +14,7 @@ class Data:
         self.data = []
         for path in data_paths:
             self.data.extend(self.get_sample(path))
-        self.idx = 0
-
+            
     def __len__(self):
         return len(self.data)
 
@@ -32,13 +31,35 @@ class Data:
     
 
 data = Data("train")
-kr_tokenizer = get_tokenizer("spacy", language="ko_core_news_sm")
+
+ko_tokenizer = get_tokenizer("spacy", language="ko_core_news_sm")
 en_tokenizer = get_tokenizer("spacy", language="en_core_web_sm")
-def yield_tokens(data_iter):
-    for src, tgt in data_iter:
-        yield kr_tokenizer(src), en_tokenizer(tgt)
+def ko_yield_tokens(data_iter):
+    for src, _ in data_iter:
+        token = ko_tokenizer(src)
+        yield token
+        
+def en_yield_tokens(data_iter):
+    for _, tgt in data_iter:
+        token = en_tokenizer(tgt)
+        yield token
 
-for i in range(3):
-    src, tgt = yield_tokens(data)
-    breakpoint()
 
+ko_vocab = build_vocab_from_iterator(ko_yield_tokens(data), specials=["<unk>", "<pad>", "<bos>", "<eos>"])
+ko_vocab.set_default_index(ko_vocab["<unk>"])
+
+en_vocab = build_vocab_from_iterator(en_yield_tokens(data), specials=["<unk>", "<pad>", "<bos>", "<eos>"])
+en_vocab.set_default_index(en_vocab["<unk>"])
+
+def collate_fn(batch):
+    srcs, tgts = [], []
+    for src, tgt in batch:
+        srcs.append([ko_vocab["<bos>"]]+[ko_vocab[token] for token in ko_tokenizer(src)]+[ko_vocab["<eos>"]])
+        tgts.append([en_vocab["<bos>"]]+[en_vocab[token] for token in en_tokenizer(tgt)]+[en_vocab["<eos>"]])
+    max_length_question = max(len(text) for text in srcs)
+    max_length_answer = max(len(text) for text in tgts)
+    padded_questions = [text + [ko_vocab["<pad>"]] * (max_length_question - len(text)) for text in srcs]
+    padded_answers = [text + [en_vocab["<pad>"]] * (max_length_answer - len(text)) for text in tgts]
+    return torch.tensor(padded_questions), torch.tensor(padded_answers)
+    
+dl = DataLoader(data, batch_size=16, shuffle=True, collate_fn=collate_fn)
