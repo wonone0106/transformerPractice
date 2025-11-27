@@ -29,7 +29,7 @@ class EncoderLayer(nn.Module):
         self.norm1 = nn.LayerNorm(embed_dim)
         self.norm2 = nn.LayerNorm(embed_dim)
 
-    def forward(self, x, mask=None):
+    def forward(self, x, mask=True):
         attn_output = self.self_attn(x, x, x, mask)
         x = self.norm1(x + attn_output)
         ffn_output = self.ffn(x)
@@ -38,7 +38,23 @@ class EncoderLayer(nn.Module):
 
 
 class DecoderLayer(nn.Module):
-    pass
+    def __init__(self, embed_dim, n_heads):
+        super().__init__()
+        self.self_attn = MultiHeadAttention(embed_dim, n_heads)
+        self.cross_attn = MultiHeadAttention(embed_dim, n_heads)
+        self.ffn = FeedForwardNetwork(embed_dim)
+        self.norm1 = nn.LayerNorm(embed_dim)
+        self.norm2 = nn.LayerNorm(embed_dim)
+        self.norm3 = nn.LayerNorm(embed_dim)
+
+    def forward(self, x, enc_output, cross_mask=False, self_mask=True):
+        attn_output = self.self_attn(x, x, x, self_mask)
+        x = self.norm1(x + attn_output)
+        attn_output = self.cross_attn(x, enc_output, enc_output, cross_mask)
+        x = self.norm2(x + attn_output)
+        ffn_output = self.ffn(x)
+        x = self.norm3(x + ffn_output)
+        return x
 
 
 class MultiHeadAttention(nn.Module):
@@ -53,7 +69,7 @@ class MultiHeadAttention(nn.Module):
         self.linear_k = nn.Linear(embed_dim, embed_dim)
         self.linear_v = nn.Linear(embed_dim, embed_dim)
 
-    def forward(self, q, k, v, mask=None):
+    def forward(self, q, k, v, mask=False):
         q = self.linear_q(q) # (batch_size, seq_len, embed_dim)
         k = self.linear_k(k)
         v = self.linear_v(v)
@@ -64,7 +80,7 @@ class MultiHeadAttention(nn.Module):
 
         attn = torch.matmul(q, k.transpose(-2, -1)/ (k.size(-1) ** 0.5)) # (batch_size, n_heads, seq_len, seq_len)
         
-        if mask is not None:
+        if mask != False:
             mask = torch.triu(torch.ones(attn.size(-2), attn.size(-1)), 1).to(attn.device)
             attn = attn.masked_fill(mask == 0, float('-inf'))
         
