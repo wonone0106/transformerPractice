@@ -54,7 +54,7 @@ en_vocab.set_default_index(en_vocab["<unk>"])
 def collate_fn(batch):
     srcs, tgts = [], []
     for src, tgt in batch:
-        srcs.append([ko_vocab["<bos>"]]+[ko_vocab[token] for token in ko_tokenizer(src)]+[ko_vocab["<eos>"]])
+        srcs.append([ko_vocab[token] for token in ko_tokenizer(src)])
         tgts.append([en_vocab["<bos>"]]+[en_vocab[token] for token in en_tokenizer(tgt)]+[en_vocab["<eos>"]])
     max_length_question = max(len(text) for text in srcs)
     max_length_answer = max(len(text) for text in tgts)
