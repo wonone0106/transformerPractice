@@ -19,15 +19,15 @@ class Transformer(nn.Module):
         self.positional_encoding = PositionalEncoding(embed_dim)
         self.linear_out = nn.Linear(embed_dim, tgt_dim)
 
-    def forward(self, src, tgt, src_mask=None, tgt_mask=None):
+    def forward(self, src, tgt, enc_mask=False, dec_self_mask=True, dec_cross_mask=False):
         src = self.src_embed(src)
         tgt = self.tgt_embed(tgt)
         src = self.positional_encoding(src)
         tgt = self.positional_encoding(tgt)
         for _ in range(self.num_encoder_layers):
-            src = EncoderLayer(embed_dim=src.size(-1), n_heads=self.n_heads)(src, src_mask)
+            src = EncoderLayer(embed_dim=src.size(-1), n_heads=self.n_heads)(src, enc_mask)
         for _ in range(self.num_decoder_layers):
-            tgt = DecoderLayer(embed_dim=tgt.size(-1), n_heads=self.n_heads)(tgt, src, tgt_mask, src_mask)
+            tgt = DecoderLayer(embed_dim=tgt.size(-1), n_heads=self.n_heads)(tgt, src, dec_self_mask, dec_cross_mask)
         output = self.linear_out(tgt)
         output = F.softmax(output, dim=-1)
         return output
