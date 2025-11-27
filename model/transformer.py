@@ -22,7 +22,20 @@ class Transformer(nn.Module):
         pass
 
 class EncoderLayer(nn.Module):
-    pass
+    def __init__(self, embed_dim, n_heads):
+        super().__init__()
+        self.self_attn = MultiHeadAttention(embed_dim, n_heads)
+        self.ffn = FeedForwardNetwork(embed_dim)
+        self.norm1 = nn.LayerNorm(embed_dim)
+        self.norm2 = nn.LayerNorm(embed_dim)
+
+    def forward(self, x, mask=None):
+        attn_output = self.self_attn(x, x, x, mask)
+        x = self.norm1(x + attn_output)
+        ffn_output = self.ffn(x)
+        x = self.norm2(x + ffn_output)
+        return x
+
 
 class DecoderLayer(nn.Module):
     pass
