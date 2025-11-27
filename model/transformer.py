@@ -1,10 +1,19 @@
+'''
+    파일명 : transformer.py
+    설명 : PyTorch로 Transformer 모델 구현
+    작성자 : 박승일
+    작성일 : 2025-11-27
+'''
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 class Transformer(nn.Module):
-    pass
-
+    def __init__(self, src_dim, tgt_dim, n_heads, num_encoder_layers, num_decoder_layers, embed_dim):
+        super().__init__()
+        self.embed_src = nn.Embedding(src_dim, embed_dim)
+        self.embed_tgt = nn.Embedding(tgt_dim, embed_dim)
+        pass
 
 class EncoderLayer(nn.Module):
     pass
@@ -15,16 +24,19 @@ class DecoderLayer(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
+    """
+    다중 헤드 어텐션 메커니즘 구현
+    """
     
-    def __init__(self, input_dim, n_heads):
+    def __init__(self, embed_dim, n_heads):
         super().__init__()
         self.n_heads = n_heads
-        self.linear_q = nn.Linear(input_dim, input_dim)
-        self.linear_k = nn.Linear(input_dim, input_dim)
-        self.linear_v = nn.Linear(input_dim, input_dim)
+        self.linear_q = nn.Linear(embed_dim, embed_dim)
+        self.linear_k = nn.Linear(embed_dim, embed_dim)
+        self.linear_v = nn.Linear(embed_dim, embed_dim)
 
     def forward(self, q, k, v, mask=None):
-        q = self.linear_q(q) # (batch_size, seq_len, input_dim)
+        q = self.linear_q(q) # (batch_size, seq_len, embed_dim)
         k = self.linear_k(k)
         v = self.linear_v(v)
         
@@ -41,7 +53,7 @@ class MultiHeadAttention(nn.Module):
         attn = torch.softmax(attn, dim=-1)
         output = torch.matmul(attn, v) # (batch_size, n_heads, seq_len, head_dim)
         output = output.transpose(1, 2).contiguous()
-        output = output.view(output.size(0), output.size(1), -1) # (batch_size, seq_len, input_dim)
+        output = output.view(output.size(0), output.size(1), -1) # (batch_size, seq_len, embed_dim)
 
         return output
 
