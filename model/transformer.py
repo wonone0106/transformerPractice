@@ -14,12 +14,24 @@ class Transformer(nn.Module):
         self.n_heads = n_heads
         self.num_encoder_layers = num_encoder_layers
         self.num_decoder_layers = num_decoder_layers
-        self.embed_src = nn.Embedding(src_dim, embed_dim)
-        self.embed_tgt = nn.Embedding(tgt_dim, embed_dim)
+        self.src_embed = nn.Embedding(src_dim, embed_dim)
+        self.tgt_embed = nn.Embedding(tgt_dim, embed_dim)
         self.positional_encoding = PositionalEncoding(embed_dim)
+        self.linear_out = nn.Linear(embed_dim, tgt_dim)
 
     def forward(self, src, tgt, src_mask=None, tgt_mask=None):
-        pass
+        src = self.src_embed(src)
+        tgt = self.tgt_embed(tgt)
+        src = self.positional_encoding(src)
+        tgt = self.positional_encoding(tgt)
+        for _ in range(self.num_encoder_layers):
+            src = EncoderLayer(embed_dim=src.size(-1), n_heads=self.n_heads)(src, src_mask)
+        for _ in range(self.num_decoder_layers):
+            tgt = DecoderLayer(embed_dim=tgt.size(-1), n_heads=self.n_heads)(tgt, src, tgt_mask, src_mask)
+        output = self.linear_out(tgt)
+        return output
+
+
 
 class EncoderLayer(nn.Module):
     def __init__(self, embed_dim, n_heads):
