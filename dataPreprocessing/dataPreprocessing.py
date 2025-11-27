@@ -30,7 +30,8 @@ class Data:
         return samples
     
 
-data = Data("train")
+train_data = Data("train")
+valid_data = Data("valid")
 
 ko_tokenizer = get_tokenizer("spacy", language="ko_core_news_sm")
 en_tokenizer = get_tokenizer("spacy", language="en_core_web_sm")
@@ -63,4 +64,5 @@ def collate_fn(batch):
     return {"src":torch.tensor(padded_srcs),
             "tgt":torch.tensor(padded_tgts)}
     
-dl = DataLoader(data, batch_size=16, shuffle=True, collate_fn=collate_fn)
+train_dl = DataLoader(train_data, batch_size=16, shuffle=True, collate_fn=collate_fn)
+valid_dl = DataLoader(valid_data, batch_size=16, shuffle=False, collate_fn=collate_fn)
