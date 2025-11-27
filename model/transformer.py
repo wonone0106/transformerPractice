@@ -9,8 +9,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class Transformer(nn.Module):
-    def __init__(self, src_dim, tgt_dim, n_heads, num_encoder_layers, num_decoder_layers, embed_dim):
+    def __init__(self, src_dim, tgt_dim, embed_dim, n_heads, num_encoder_layers, num_decoder_layers):
         super().__init__()
+        self.n_heads = n_heads
+        self.num_encoder_layers = num_encoder_layers
+        self.num_decoder_layers = num_decoder_layers
         self.embed_src = nn.Embedding(src_dim, embed_dim)
         self.embed_tgt = nn.Embedding(tgt_dim, embed_dim)
         pass
@@ -58,7 +61,19 @@ class MultiHeadAttention(nn.Module):
         return output
 
 class PositionalEncoding(nn.Module):
-    pass
+    def __init__(self, embed_dim, max_len=5000):
+        super().__init__()
+        pe = torch.zeros(max_len, embed_dim)
+        position = torch.arange(0, max_len).unsequeeze(1).float()
+        div_term = torch.arange(0, embed_dim, 2).float() ** (torch.tensor(10000.0) / embed_dim)
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0) 
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        x = x + self.pe[:, :x.size(1), :]
+        return x
 
 
 class FeedForwardNetwork(nn.Module):
