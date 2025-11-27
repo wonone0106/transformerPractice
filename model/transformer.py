@@ -29,6 +29,7 @@ class Transformer(nn.Module):
         for _ in range(self.num_decoder_layers):
             tgt = DecoderLayer(embed_dim=tgt.size(-1), n_heads=self.n_heads)(tgt, src, tgt_mask, src_mask)
         output = self.linear_out(tgt)
+        output = F.softmax(output, dim=-1)
         return output
 
 
