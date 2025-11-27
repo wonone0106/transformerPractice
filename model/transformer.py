@@ -16,11 +16,13 @@ class Transformer(nn.Module):
         self.num_decoder_layers = num_decoder_layers
         self.embed_src = nn.Embedding(src_dim, embed_dim)
         self.embed_tgt = nn.Embedding(tgt_dim, embed_dim)
+        self.positional_encoding = PositionalEncoding(embed_dim)
+
+    def forward(self, src, tgt, src_mask=None, tgt_mask=None):
         pass
 
 class EncoderLayer(nn.Module):
     pass
-
 
 class DecoderLayer(nn.Module):
     pass
@@ -77,4 +79,13 @@ class PositionalEncoding(nn.Module):
 
 
 class FeedForwardNetwork(nn.Module):
-    pass
+    def __init__(self, embed_dim, ff_dim=2048):
+        super().__init__()
+        self.linear1 = nn.Linear(embed_dim, ff_dim)
+        self.linear2 = nn.Linear(ff_dim, embed_dim)
+
+    def forward(self, x):
+        x = self.linear1(x)
+        x = F.relu(x)
+        x = self.linear2(x)
+        return x
