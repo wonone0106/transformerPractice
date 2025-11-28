@@ -10,6 +10,9 @@ import torch.nn.functional as F
 
 class Transformer(nn.Module):
     def __init__(self, src_dim, tgt_dim, embed_dim, n_heads, num_encoder_layers, num_decoder_layers):
+        """
+        Transformer 모델 구축
+        """
         super().__init__()
         self.n_heads = n_heads
         self.num_encoder_layers = num_encoder_layers
@@ -17,6 +20,8 @@ class Transformer(nn.Module):
         self.src_embed = nn.Embedding(src_dim, embed_dim)
         self.tgt_embed = nn.Embedding(tgt_dim, embed_dim)
         self.positional_encoding = PositionalEncoding(embed_dim)
+        self.encoder_layers = nn.ModuleList([EncoderLayer(embed_dim, n_heads) for _ in range(num_encoder_layers)])
+        self.decoder_layers = nn.ModuleList([DecoderLayer(embed_dim, n_heads) for _ in range(num_decoder_layers)])
         self.linear_out = nn.Linear(embed_dim, tgt_dim)
 
     def forward(self, src, tgt, enc_mask=False, dec_self_mask=True, dec_cross_mask=False):
@@ -24,13 +29,15 @@ class Transformer(nn.Module):
         tgt = self.tgt_embed(tgt)
         src = self.positional_encoding(src)
         tgt = self.positional_encoding(tgt)
-        for _ in range(self.num_encoder_layers):
-            src = EncoderLayer(embed_dim=src.size(-1), n_heads=self.n_heads)(src, enc_mask)
-        for _ in range(self.num_decoder_layers):
-            tgt = DecoderLayer(embed_dim=tgt.size(-1), n_heads=self.n_heads)(tgt, src, dec_self_mask, dec_cross_mask)
-        output = self.linear_out(tgt)
-        output = F.softmax(output, dim=-1)
-        return output
+        
+        for enc_layer in self.encoder_layers:
+            src = enc_layer(src, enc_mask)
+        for dec_layer in self.decoder_layers:
+            tgt = dec_layer(tgt, src, dec_cross_mask, dec_self_mask)
+        outputs = self.linear_out(tgt)    
+        outputs = F.softmax(outputs, dim=-1)
+
+        return outputs
 
 
 
@@ -108,7 +115,7 @@ class PositionalEncoding(nn.Module):
     def __init__(self, embed_dim, max_len=5000):
         super().__init__()
         pe = torch.zeros(max_len, embed_dim)
-        position = torch.arange(0, max_len).unsequeeze(1).float()
+        position = torch.arange(0, max_len).unsqueeze(1).float()
         div_term = torch.arange(0, embed_dim, 2).float() ** (torch.tensor(10000.0) / embed_dim)
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
