@@ -4,6 +4,7 @@ from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
 import spacy
 
+import pickle
 
 from glob import glob
 import pandas as pd
@@ -46,10 +47,10 @@ def en_yield_tokens(data_iter):
         yield token
 
 
-ko_vocab = build_vocab_from_iterator(ko_yield_tokens(data), specials=["<unk>", "<pad>", "<bos>", "<eos>"])
+ko_vocab = build_vocab_from_iterator(ko_yield_tokens(train_data), specials=["<unk>", "<pad>", "<bos>", "<eos>"])
 ko_vocab.set_default_index(ko_vocab["<unk>"])
 
-en_vocab = build_vocab_from_iterator(en_yield_tokens(data), specials=["<unk>", "<pad>", "<bos>", "<eos>"])
+en_vocab = build_vocab_from_iterator(en_yield_tokens(train_data), specials=["<unk>", "<pad>", "<bos>", "<eos>"])
 en_vocab.set_default_index(en_vocab["<unk>"])
 
 def collate_fn(batch):
@@ -66,3 +67,13 @@ def collate_fn(batch):
     
 train_dl = DataLoader(train_data, batch_size=16, shuffle=True, collate_fn=collate_fn)
 valid_dl = DataLoader(valid_data, batch_size=16, shuffle=False, collate_fn=collate_fn)
+
+save_obj = {
+    "train_dl": train_dl,
+    "valid_dl": valid_dl,
+    "en_vocab": en_vocab,
+    "ko_vocab": ko_vocab
+}
+
+with open("preprocessed.pkl", "wb") as f:
+    pickle.dump(save_obj, f)
