@@ -10,6 +10,9 @@ import torch.nn.functional as F
 
 class Transformer(nn.Module):
     def __init__(self, src_dim, tgt_dim, embed_dim, n_heads, num_encoder_layers, num_decoder_layers):
+        """
+        Transformer 모델 구축
+        """
         super().__init__()
         self.n_heads = n_heads
         self.num_encoder_layers = num_encoder_layers
@@ -112,7 +115,7 @@ class PositionalEncoding(nn.Module):
     def __init__(self, embed_dim, max_len=5000):
         super().__init__()
         pe = torch.zeros(max_len, embed_dim)
-        position = torch.arange(0, max_len).unsequeeze(1).float()
+        position = torch.arange(0, max_len).unsqueeze(1).float()
         div_term = torch.arange(0, embed_dim, 2).float() ** (torch.tensor(10000.0) / embed_dim)
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
