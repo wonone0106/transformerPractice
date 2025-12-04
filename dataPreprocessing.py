@@ -61,8 +61,16 @@ def collate_fn(batch):
     max_length_answer = max(len(text) for text in tgts)
     padded_srcs = [text + [ko_vocab["<pad>"]] * (max_length_question - len(text)) for text in srcs]
     padded_tgts = [text + [en_vocab["<pad>"]] * (max_length_answer - len(text)) for text in tgts]
+    padded_tgts = padded_tgts.remove(3)
+    label = padded_tgts[ : ,1: ]
     return {"src":torch.tensor(padded_srcs),
-            "tgt":torch.tensor(padded_tgts)}
+            "tgt":torch.tensor(padded_tgts),
+            "label":torch.tensor(label)}
     
 train_dl = DataLoader(train_data, batch_size=16, shuffle=True, collate_fn=collate_fn)
 valid_dl = DataLoader(valid_data, batch_size=16, shuffle=False, collate_fn=collate_fn)
+
+
+if __name__ == "__main__":
+    for src, tgt in train_dl:
+        breakpoint()
