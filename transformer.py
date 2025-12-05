@@ -102,7 +102,7 @@ class MultiHeadAttention(nn.Module):
         
         if mask != False:
             mask = torch.triu(torch.ones(attn.size(-2), attn.size(-1)), 1).to(attn.device)
-            attn = attn.masked_fill(mask == 0, float('-inf'))
+            attn = attn.masked_fill(mask == 1, float('-inf'))
         
         attn = torch.softmax(attn, dim=-1)
         output = torch.matmul(attn, v) # (batch_size, n_heads, seq_len, head_dim)
