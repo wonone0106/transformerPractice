@@ -34,8 +34,7 @@ class Transformer(nn.Module):
             src = enc_layer(src, enc_mask)
         for dec_layer in self.decoder_layers:
             tgt = dec_layer(tgt, src, dec_cross_mask, dec_self_mask)
-        outputs = self.linear_out(tgt)    
-        outputs = F.softmax(outputs, dim=-1)
+        outputs = self.linear_out(tgt)
 
         return outputs
 
@@ -88,6 +87,7 @@ class MultiHeadAttention(nn.Module):
         self.linear_q = nn.Linear(embed_dim, embed_dim)
         self.linear_k = nn.Linear(embed_dim, embed_dim)
         self.linear_v = nn.Linear(embed_dim, embed_dim)
+        self.linear_out = nn.Linear(embed_dim, embed_dim)
 
     def forward(self, q, k, v, mask=False):
         q = self.linear_q(q) # (batch_size, seq_len, embed_dim)
@@ -98,7 +98,7 @@ class MultiHeadAttention(nn.Module):
         k = k.view(k.size(0), k.size(1), self.n_heads, k.size(-1) // self.n_heads).transpose(1, 2)
         v = v.view(v.size(0), v.size(1), self.n_heads, v.size(-1) // self.n_heads).transpose(1, 2)
 
-        attn = torch.matmul(q, k.transpose(-2, -1)/ (k.size(-1) ** 0.5)) # (batch_size, n_heads, seq_len, seq_len)
+        attn = torch.matmul(q, k.transpose(-2, -1)) / (k.size(-1) ** 0.5) # (batch_size, n_heads, seq_len, seq_len)
         
         if mask != False:
             mask = torch.triu(torch.ones(attn.size(-2), attn.size(-1)), 1).to(attn.device)
@@ -108,6 +108,8 @@ class MultiHeadAttention(nn.Module):
         output = torch.matmul(attn, v) # (batch_size, n_heads, seq_len, head_dim)
         output = output.transpose(1, 2).contiguous()
         output = output.view(output.size(0), output.size(1), -1) # (batch_size, seq_len, embed_dim)
+
+        output = self.linear_out(output)
 
         return output
 
