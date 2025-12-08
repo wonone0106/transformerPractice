@@ -1,14 +1,13 @@
 import hydra
 from omegaconf import OmegaConf
 import torch.optim as optim
-from model import EmotionMobileNet
 import logging
 import torch.nn as nn
-from trainer import train, evaluate
+from trainer import train
 import torch
 import os
 from transformer import Transformer
-from dataPreprocessing.dataPreprocessing import train_dl, valid_dl, en_vocab, ko_vocab
+from dataPreprocessing import train_dl, valid_dl, en_vocab, ko_vocab
 
 @hydra.main(version_base=None, config_path="./config", config_name="train.yaml")
 def main(cfg):
@@ -18,15 +17,15 @@ def main(cfg):
     logging.info(f"Using device: {device}")
 
     model = Transformer(
-        src_dim=len(en_vocab),
-        tgt_dim=len(ko_vocab),
+        src_dim=len(ko_vocab),
+        tgt_dim=len(en_vocab),
         embed_dim=cfg.model.embed_dim,
         n_heads=cfg.model.n_heads,
         num_encoder_layers=cfg.model.num_encoder_layers,
         num_decoder_layers=cfg.model.num_decoder_layers
     ).to(device)
     
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(ignore_index=en_vocab["<pad>"])
     optimizer = optim.Adam(model.parameters(), lr=cfg.train.lr)
     epoch = 0
 
