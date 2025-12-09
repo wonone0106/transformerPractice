@@ -4,22 +4,22 @@ import logging
 
 def train(model, train_loader, valid_loader, criterion, optimizer, start_epoch, num_epochs, device, best_model_weights=None):
     model.to(device)
-    best_accuracy = 0.0
-    best_model_weights = None
+    best_val_loss = float("inf")
+
     logging.info(f"Starting training at epoch {start_epoch} for {num_epochs} epochs.")
 
     for epoch in range(start_epoch, num_epochs):
         model.train()
         running_loss = 0.0
 
-        for src_inputs, tgt_inputs in train_loader:
-            src_inputs, tgt_inputs = src_inputs.to(device), tgt_inputs[:,:-1].to(device)
-            labels = tgt_inputs[:,1:].to(device)
+        for data in train_loader:
+            src_inputs, tgt_inputs = data["src"].to(device), data["tgt"].to(device)
+            labels = data["label"].to(device)
 
             optimizer.zero_grad()
 
             outputs = model(src_inputs, tgt_inputs)
-            loss = criterion(outputs, labels)
+            loss = criterion(outputs.view(-1, outputs.size(-1)), labels.view(-1))
             loss.backward()
             optimizer.step()
 
@@ -28,25 +28,25 @@ def train(model, train_loader, valid_loader, criterion, optimizer, start_epoch, 
         avg_train_loss = running_loss / len(train_loader.dataset)
 
         model.eval()
-        correct, total = 0, 0
+        val_loss = 0.0
+
         with torch.no_grad():
-            for src_inputs, tgt_inputs in valid_loader:
-                src_inputs, tgt_inputs = src_inputs.to(device), tgt_inputs[:,:-1].to(device)
-                labels = tgt_inputs[:,1:].to(device)
+            for data in valid_loader:
+                src_inputs, tgt_inputs = data["src"].to(device), data["tgt"].to(device)
+                labels = data["label"].to(device)
 
                 outputs = model(src_inputs, tgt_inputs)
-                _, predicted = torch.max(outputs, dim=-1)
-
-                total += labels.numel()
-                correct += (predicted == labels).sum().item()
+                loss = criterion(outputs.view(-1, outputs.size(-1)), labels.view(-1))
                 
-        accuracy = correct / total
+                val_loss += loss.item() * src_inputs.size(0)
+
+        avg_val_loss = val_loss / len(valid_loader.dataset)
         
-        if accuracy > best_accuracy:
-            best_accuracy = accuracy
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
             best_model_weights = model.state_dict().copy()
         
-        logging.info("Epoch [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}".format(epoch + 1, num_epochs, avg_train_loss, accuracy))
+        logging.info("Epoch [{}/{}], Train Loss: {:.4f}, Val Loss: {:.4f}".format(epoch + 1, num_epochs, avg_train_loss, avg_val_loss))
         
         torch.save({
             'epoch': epoch,
@@ -61,7 +61,7 @@ def train(model, train_loader, valid_loader, criterion, optimizer, start_epoch, 
 
     if best_model_weights:
         model.load_state_dict(best_model_weights)
-        torch.save(model.state_dict(), f'best_model_{best_accuracy:.2f}.pth')
-        logging.info(f"Best model weights saved with accuracy: {best_accuracy:.2f}")
+        torch.save(model.state_dict(), f'best_model_{best_val_loss:.2f}.pth')
+        logging.info(f"Best model weights saved with Val Loss: {best_val_loss:.2f}")
         os.remove("checkpoint.pth")
     logging.info("Training complete.")
