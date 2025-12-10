@@ -34,8 +34,7 @@ class Transformer(nn.Module):
             src = enc_layer(src, enc_mask)
         for dec_layer in self.decoder_layers:
             tgt = dec_layer(tgt, src, dec_cross_mask, dec_self_mask)
-        outputs = self.linear_out(tgt)    
-        outputs = F.softmax(outputs, dim=-1)
+        outputs = self.linear_out(tgt)
 
         return outputs
 
@@ -88,6 +87,7 @@ class MultiHeadAttention(nn.Module):
         self.linear_q = nn.Linear(embed_dim, embed_dim)
         self.linear_k = nn.Linear(embed_dim, embed_dim)
         self.linear_v = nn.Linear(embed_dim, embed_dim)
+        self.linear_out = nn.Linear(embed_dim, embed_dim)
 
     def forward(self, q, k, v, mask=False):
         q = self.linear_q(q) # (batch_size, seq_len, embed_dim)
@@ -98,28 +98,30 @@ class MultiHeadAttention(nn.Module):
         k = k.view(k.size(0), k.size(1), self.n_heads, k.size(-1) // self.n_heads).transpose(1, 2)
         v = v.view(v.size(0), v.size(1), self.n_heads, v.size(-1) // self.n_heads).transpose(1, 2)
 
-        attn = torch.matmul(q, k.transpose(-2, -1)/ (k.size(-1) ** 0.5)) # (batch_size, n_heads, seq_len, seq_len)
+        attn = torch.matmul(q, k.transpose(-2, -1)) / (k.size(-1) ** 0.5) # (batch_size, n_heads, seq_len, seq_len)
         
         if mask != False:
             mask = torch.triu(torch.ones(attn.size(-2), attn.size(-1)), 1).to(attn.device)
-            attn = attn.masked_fill(mask == 0, float('-inf'))
+            attn = attn.masked_fill(mask == 1, float('-inf'))
         
         attn = torch.softmax(attn, dim=-1)
         output = torch.matmul(attn, v) # (batch_size, n_heads, seq_len, head_dim)
         output = output.transpose(1, 2).contiguous()
         output = output.view(output.size(0), output.size(1), -1) # (batch_size, seq_len, embed_dim)
 
+        output = self.linear_out(output)
+
         return output
 
 class PositionalEncoding(nn.Module):
     def __init__(self, embed_dim, max_len=5000):
         super().__init__()
-        pe = torch.zeros(max_len, embed_dim)
-        position = torch.arange(0, max_len).unsqueeze(1).float()
-        div_term = torch.arange(0, embed_dim, 2).float() ** (torch.tensor(10000.0) / embed_dim)
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0) 
+        pe = torch.zeros(max_len, embed_dim) # (max_len, embed_dim)
+        position = torch.arange(0, max_len).unsqueeze(1).float() # (max_len, 1)
+        div_term = torch.tensor(10000.0)  ** ( torch.arange(0, embed_dim, 2).float() / embed_dim) 
+        pe[:, 0::2] = torch.sin(position / div_term) 
+        pe[:, 1::2] = torch.cos(position / div_term)
+        pe = pe.unsqueeze(0) # (1, max_len, embed_dim)
         self.register_buffer('pe', pe)
 
     def forward(self, x):

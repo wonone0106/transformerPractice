@@ -4,7 +4,6 @@ from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
 import spacy
 
-import pickle
 
 from glob import glob
 import pandas as pd
@@ -54,26 +53,25 @@ en_vocab = build_vocab_from_iterator(en_yield_tokens(train_data), specials=["<un
 en_vocab.set_default_index(en_vocab["<unk>"])
 
 def collate_fn(batch):
-    srcs, tgts = [], []
+    srcs, tgts, labels = [], [], []
     for src, tgt in batch:
         srcs.append([ko_vocab[token] for token in ko_tokenizer(src)])
-        tgts.append([en_vocab["<bos>"]]+[en_vocab[token] for token in en_tokenizer(tgt)]+[en_vocab["<eos>"]])
+        tgts.append([en_vocab["<bos>"]]+[en_vocab[token] for token in en_tokenizer(tgt)])
+        labels.append([en_vocab[token] for token in en_tokenizer(tgt)]+[en_vocab["<eos>"]])
     max_length_question = max(len(text) for text in srcs)
     max_length_answer = max(len(text) for text in tgts)
+    max_length_label = max(len(text) for text in labels)
     padded_srcs = [text + [ko_vocab["<pad>"]] * (max_length_question - len(text)) for text in srcs]
     padded_tgts = [text + [en_vocab["<pad>"]] * (max_length_answer - len(text)) for text in tgts]
+    padded_labels = [text + [en_vocab["<pad>"]] * (max_length_label - len(text)) for text in labels]
     return {"src":torch.tensor(padded_srcs),
-            "tgt":torch.tensor(padded_tgts)}
+            "tgt":torch.tensor(padded_tgts),
+            "label":torch.tensor(padded_labels)}
     
 train_dl = DataLoader(train_data, batch_size=16, shuffle=True, collate_fn=collate_fn)
 valid_dl = DataLoader(valid_data, batch_size=16, shuffle=False, collate_fn=collate_fn)
 
-save_obj = {
-    "train_dl": train_dl,
-    "valid_dl": valid_dl,
-    "en_vocab": en_vocab,
-    "ko_vocab": ko_vocab
-}
 
-with open("preprocessed.pkl", "wb") as f:
-    pickle.dump(save_obj, f)
+if __name__ == "__main__":
+    for src, tgt in train_dl:
+        breakpoint()
