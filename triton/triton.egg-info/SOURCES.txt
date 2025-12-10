@@ -1,5 +1,0 @@
-pyproject.toml
-triton.egg-info/PKG-INFO
-triton.egg-info/SOURCES.txt
-triton.egg-info/dependency_links.txt
-triton.egg-info/top_level.txt
