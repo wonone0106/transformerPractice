@@ -1,13 +1,14 @@
 import hydra
 from omegaconf import OmegaConf
 import torch.optim as optim
+from torch.utils.data import DataLoader
 import logging
 import torch.nn as nn
 from trainer import train
 import torch
 import os
 from transformer import Transformer
-from dataPreprocessing import train_dl, valid_dl, en_vocab, ko_vocab
+from dataPreprocessing import train_data, valid_data, sp, collate_fn
 
 @hydra.main(version_base=None, config_path="./config", config_name="train.yaml")
 def main(cfg):
@@ -16,16 +17,19 @@ def main(cfg):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info(f"Using device: {device}")
 
+    train_dl = DataLoader(train_data, batch_size=cfg.train.batch_size, shuffle=True, collate_fn=collate_fn)
+    valid_dl = DataLoader(valid_data, batch_size=cfg.train.batch_size, shuffle=False, collate_fn=collate_fn)
+
     model = Transformer(
-        src_dim=len(ko_vocab),
-        tgt_dim=len(en_vocab),
+        src_dim=37000,
+        tgt_dim=37000,
         embed_dim=cfg.model.embed_dim,
         n_heads=cfg.model.n_heads,
         num_encoder_layers=cfg.model.num_encoder_layers,
         num_decoder_layers=cfg.model.num_decoder_layers
     ).to(device)
     
-    criterion = nn.CrossEntropyLoss(ignore_index=en_vocab["<pad>"])
+    criterion = nn.CrossEntropyLoss(ignore_index=sp.pad_id())
     optimizer = optim.Adam(model.parameters(), lr=cfg.train.lr)
     epoch = 0
 
