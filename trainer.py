@@ -2,9 +2,8 @@ import torch
 import os
 import logging
 
-def train(model, train_loader, valid_loader, criterion, optimizer, start_epoch, num_epochs, device, best_model_weights=None):
+def train(model, train_loader, valid_loader, criterion, optimizer, start_epoch, num_epochs, device, best_model_weights, best_val_loss):
     model.to(device)
-    best_val_loss = float("inf")
 
     logging.info(f"Starting training at epoch {start_epoch} for {num_epochs} epochs.")
 
@@ -53,7 +52,8 @@ def train(model, train_loader, valid_loader, criterion, optimizer, start_epoch, 
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'loss': avg_train_loss,
-            'best_model_weights': best_model_weights
+            'best_model_weights': best_model_weights,
+            'best_val_loss': best_val_loss
         }, "checkpoint.pth")
         
         

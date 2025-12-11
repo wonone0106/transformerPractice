@@ -34,6 +34,7 @@ def main(cfg):
     epoch = 0
 
     best_model_weights = None
+    best_val_loss = float("inf")
 
     if os.path.exists("checkpoint.pth"):
         checkpoint = torch.load("checkpoint.pth")
@@ -43,9 +44,10 @@ def main(cfg):
         best_model_weights = checkpoint['best_model_weights']
         epoch = checkpoint['epoch']
         loss = checkpoint['loss']
+        best_val_loss = checkpoint['best_val_loss']
         logging.info(f"Resuming training from epoch {epoch+1} with loss {loss:.4f}")
 
-    train(model, train_dl, valid_dl, criterion, optimizer, epoch, cfg.train.epochs, device, best_model_weights)
+    train(model, train_dl, valid_dl, criterion, optimizer, epoch, cfg.train.epochs, device, best_model_weights, best_val_loss)
 
 if __name__ == "__main__":
     main()
