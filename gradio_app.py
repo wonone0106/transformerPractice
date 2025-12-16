@@ -107,7 +107,6 @@ def create_gradio_interface():
         
         clear_btn.click(
             fn=clear_text,
-            inputs=None,
             outputs=[korean_input, english_output]
         )
         

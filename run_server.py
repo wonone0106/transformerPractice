@@ -6,7 +6,6 @@
 import argparse
 import logging
 import uvicorn
-from threading import Thread
 
 # 로깅 설정
 logging.basicConfig(
